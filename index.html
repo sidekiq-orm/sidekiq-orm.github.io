@@ -3,34 +3,39 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Sidekiq-ORM by sidekiq-orm</title>
-
+    <title>Sidekiq-ActiveRecord by sidekiq-orm</title>
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="javascripts/scale.fix.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
     <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
   </head>
   <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/sidekiq-orm">View On GitHub</a></li>
+        </nav>
+      </div><!-- end header -->
+
     <div class="wrapper">
-      <header>
-        <h1 class="header">Sidekiq-ORM</h1>
-        <p class="header">Sidekiq-ActiveRecord</p>
 
-
-
-        <ul>
-          <li><a class="buttons github" href="https://github.com/sidekiq-orm">GitHub Profile</a></li>
-        </ul>
-
-      </header>
       <section>
-        <h1>
-<a name="sidekiqactiverecord" class="anchor" href="#sidekiqactiverecord"><span class="octicon octicon-link"></span></a>Sidekiq::Activerecord</h1>
+        <div id="title">
+          <h1>Sidekiq-ActiveRecord</h1>
+          <p>Sidekiq-ORM Project</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/sidekiq-orm">sidekiq-orm</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
 
-<p>Encapsulates various interactions between <a href="https://github.com/mperham/sidekiq">Sidekiq</a> and ActiveRecord.</p>
+        <p><a href="https://github.com/sidekiq-orm/sidekiq-activerecord">Sidekiq::Activerecord</a> encapsulates common patterns and various interactions between <a href="https://github.com/mperham/sidekiq">Sidekiq</a> and ActiveRecord.</p>
 
 <h2>
 <a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
@@ -45,11 +50,10 @@
 <pre><code>$ bundle
 </code></pre>
 
-<p><br><br></p>
+<h1>
+<a name="common-patterns" class="anchor" href="#common-patterns"><span class="octicon octicon-link"></span></a>Common Patterns</h1>
 
 <p>If you've been using <a href="https://github.com/mperham/sidekiq">Sidekiq</a> for a while, you've probably noticed a recurring pattern in your workers:</p>
-
-<p><br><br></p>
 
 <h1>
 <a name="sidekiqactiverecordtaskworker" class="anchor" href="#sidekiqactiverecordtaskworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::TaskWorker</h1>
@@ -94,11 +98,9 @@
 <span class="k">end</span>
 </pre></div>
 
-<p>The <code>sidekiq_task_model</code> is the task's model. it can be either a symbol (<code>:user</code>) or the model class (<code>User</code>).</p>
-
-<p>Note that <code>perform_on_model</code> will only be called if the model exist and valid. (more on that soon)</p>
-
-<p>In case the task was called with additional arguments, will be passed to <code>perform_on_model</code> e.g: </p>
+<p>The <code>sidekiq_task_model</code> is the task's model. it can be either a symbol (<code>:user</code>) or the model class (<code>User</code>).
+Note that <code>perform_on_model</code> will only be called if the model exist and valid. (more on that soon)
+In case the task was called with additional arguments, will be passed to <code>perform_on_model</code> e.g: </p>
 
 <div class="highlight highlight-ruby"><pre><span class="no">UserTaskWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="p">{</span><span class="ss">:new_email</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">})</span>
 </pre></div>
@@ -108,7 +110,7 @@
 <span class="k">end</span>
 </pre></div>
 
-<p>Addionally, you can use an alias of <code>task_model</code> which is the same as name class name:</p>
+<p>For better readability, you can use an alias of <code>task_model</code> which is the same as name class name:</p>
 
 <div class="highlight highlight-ruby"><pre><span class="n">sidekiq_task_model</span> <span class="ss">:user</span>
 
@@ -187,7 +189,7 @@ To handle this, you can define the <code>:identifier_key</code> option:</p>
 
 <p><br><br></p>
 
-<hr><p><br><br></p>
+<hr><p><br></p>
 
 <h1>
 <a name="sidekiqactiverecordmanagerworker" class="anchor" href="#sidekiqactiverecordmanagerworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::ManagerWorker</h1>
@@ -306,12 +308,10 @@ In such cases, when you don't to be blocking, it's recommended to delay the quer
 <span class="no">UserSyncer</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">,</span> <span class="n">override_options</span><span class="p">)</span>
 </pre></div>
       </section>
-      <footer>
-        <p><small>Hosted on <a href="http://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
-      </footer>
+
     </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-		          <script type="text/javascript">
+              <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
           </script>
