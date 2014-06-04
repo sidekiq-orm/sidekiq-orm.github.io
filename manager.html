@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Sidekiq-ActiveRecord by sidekiq-orm</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/sidekiq-orm">View On GitHub</a></li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Sidekiq-ActiveRecord</h1>
+          <p>Sidekiq-ORM Project</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/sidekiq-orm">sidekiq-orm</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
+<h1>
+<a name="sidekiqactiverecordmanagerworker" class="anchor" href="#sidekiqactiverecordmanagerworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::ManagerWorker</h1>
+
+<p>Another farily common <code>Sidekiq::Worker</code> pattern, is a parent worker which goes over some model collection and enqueues a child worker for each model in the collection.
+lets checkout an example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Parent Worker</span>
+<span class="k">class</span> <span class="nc">UserSyncer</span>
+  <span class="kp">include</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">Worker</span>
+
+  <span class="k">def</span> <span class="nf">perform</span>
+    <span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
+      <span class="no">ChildWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Child Worker</span>
+<span class="k">class</span> <span class="nc">UserTaskWorker</span>
+  <span class="kp">include</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">Worker</span>
+
+  <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
+    <span class="c1"># task logic</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p><code>Sidekiq::ActiveRecord::ManagerWorker</code> wraps this boilerplate with a clean DSL:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Parent Worker</span>
+<span class="k">class</span> <span class="nc">UserSyncer</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">ManagerWorker</span>
+  <span class="n">sidekiq_delegate_task_to</span> <span class="ss">:user_task_worker</span> <span class="c1"># or UserTaskWorker</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Then, just call the worker with the model collection:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">UserSyncer</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="delayed-execution" class="anchor" href="#delayed-execution"><span class="octicon octicon-link"></span></a>Delayed Execution</h2>
+
+<p>Let's start with an example first:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+
+  <span class="k">def</span> <span class="nf">update</span>
+    <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">update_params</span><span class="p">)</span>
+       <span class="no">FriendRequestWorker</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">friends</span><span class="p">)</span>
+       <span class="no">UserSyncerWorker</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>
+    <span class="k">end</span>
+    <span class="n">respond_with</span> <span class="n">current_user</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<p>In the above example, <code>FriendRequestWorker</code> will go over all the user's friends, which we can assume is a fairly medium size collection.</p>
+
+<p>After that, <code>UserSyncerWorker</code> will go over all of the <code>User.active</code> collection, which can be a huge collection, in large scale systems.
+In such cases, when you don't to be blocking, it's recommended to delay the query execution as well. </p>
+
+<p>The way this can be done, is to set the <code>default_models_query</code> in the ManagerWorker and calling <code>perform_async</code>, which will run the specified query asynchronously: </p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserSyncerWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">ManagerWorker</span>
+  <span class="n">sidekiq_delegate_task_to</span> <span class="no">UserTaskWorker</span>
+  <span class="n">default_models_query</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="no">User</span><span class="o">.</span><span class="n">active</span> <span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="n">override_options</span> <span class="o">=</span> <span class="p">{</span> <span class="ss">:batch_size</span> <span class="o">=&gt;</span> <span class="mi">300</span> <span class="p">}</span>
+<span class="no">UserSyncerWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">override_options</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="configuration" class="anchor" href="#configuration"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<h3>
+<a name="batch_size" class="anchor" href="#batch_size"><span class="octicon octicon-link"></span></a>batch_size</h3>
+
+<p>Default batch size is 1000</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_manager_options</span> <span class="ss">:batch_size</span> <span class="o">=&gt;</span> <span class="mi">500</span>
+</pre></div>
+
+<h3>
+<a name="identifier_key-1" class="anchor" href="#identifier_key-1"><span class="octicon octicon-link"></span></a>identifier_key</h3>
+
+<p>Default identifier_key is <code>:id</code></p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_manager_options</span> <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:email</span>
+</pre></div>
+
+<h3>
+<a name="additional_keys" class="anchor" href="#additional_keys"><span class="octicon octicon-link"></span></a>additional_keys</h3>
+
+<p>Other arguments to enqueue aside from the identifier</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_manager_options</span> <span class="ss">:additional_keys</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:status</span><span class="p">,</span> <span class="ss">:username</span><span class="o">]</span>
+</pre></div>
+
+<h2>
+<a name="override-default-options" class="anchor" href="#override-default-options"><span class="octicon octicon-link"></span></a>Override default options</h2>
+
+<p>Just pass the options to the manager:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">override_options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="ss">:batch_size</span> <span class="o">=&gt;</span> <span class="mi">500</span><span class="p">,</span>
+    <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:user_token</span><span class="p">,</span>
+    <span class="ss">:additional_keys</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:status</span><span class="o">]</span>
+<span class="p">}</span>
+<span class="no">UserSyncer</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">,</span> <span class="n">override_options</span><span class="p">)</span>
+</pre></div>
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-51556764-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>

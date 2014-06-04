@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Sidekiq-ActiveRecord by sidekiq-orm</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/sidekiq-orm">View On GitHub</a></li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Sidekiq-ActiveRecord</h1>
+          <p>Sidekiq-ORM Project</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/sidekiq-orm">sidekiq-orm</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
+<h1>
+<a name="sidekiqactiverecordtaskworker" class="anchor" href="#sidekiqactiverecordtaskworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::TaskWorker</h1>
+
+<p>A fairly common <code>Sidekiq::Worker</code> pattern, is a worker which does the following:</p>
+
+<pre><code>* Receives a model.id as it's argument.
+* Loads the specified model.
+* Verifies that the model exists.
+* Performs some additional validation.
+  (since the model may have changed since the worker was enqueued)
+* If all is well, runs some application logic on the mode.
+</code></pre>
+
+<p>lets checkout an example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserTaskWorker</span>
+  <span class="kp">include</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">Worker</span>
+
+  <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="k">unless</span> <span class="n">user</span><span class="o">.</span><span class="n">present?</span>
+    <span class="k">return</span> <span class="k">unless</span> <span class="n">user</span><span class="o">.</span><span class="n">active?</span>
+
+    <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<p><code>Sidekiq::ActiveRecord::TaskWorker</code> wraps this boilerplate and lets you access the model, using the <code>perform_on_model</code> method:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserTaskWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">TaskWorker</span>
+
+  <span class="n">sidekiq_task_model</span> <span class="ss">:user</span> <span class="c1"># or User</span>
+
+  <span class="k">def</span> <span class="nf">perform_on_model</span>
+    <span class="n">current_user</span> <span class="o">=</span> <span class="n">task_model</span>
+    <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<p>The <code>sidekiq_task_model</code> is the task's model. it can be either a symbol (<code>:user</code>) or the model class (<code>User</code>).
+Note that <code>perform_on_model</code> will only be called if the model exist and valid. (more on that soon)
+In case the task was called with additional arguments, will be passed to <code>perform_on_model</code> e.g: </p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">UserTaskWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="p">{</span><span class="ss">:new_email</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">})</span>
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">perform_on_model</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+    <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">task_model</span><span class="p">,</span> <span class="n">options</span><span class="o">[</span><span class="ss">:new_email</span><span class="o">]</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>For better readability, you can use an alias of <code>task_model</code> which is the same as name class name:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_task_model</span> <span class="ss">:user</span>
+
+<span class="k">def</span> <span class="nf">perform_on_model</span><span class="p">(</span><span class="n">service_options</span><span class="p">)</span>
+    <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">service_options</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="full-example" class="anchor" href="#full-example"><span class="octicon octicon-link"></span></a>Full Example</h2>
+
+<p>Checkout the <a href="https://github.com/sidekiq-orm/sidekiq-activerecord/wiki/Task-Worker---Full-Example">full example</a></p>
+
+<h1>
+<a name="hooks" class="anchor" href="#hooks"><span class="octicon octicon-link"></span></a>Hooks</h1>
+
+<p>Additionally, you can define the following methods which serve as hooks for each use-case:</p>
+
+<h3>
+<a name="model-not-found" class="anchor" href="#model-not-found"><span class="octicon octicon-link"></span></a>Model not found</h3>
+
+<p>Add this method hook, which will be invoked in th event the model wasn't found. </p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">not_found_model</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
+    <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User not found for ID:</span><span class="si">#{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="check-the-model-before-perform" class="anchor" href="#check-the-model-before-perform"><span class="octicon octicon-link"></span></a>Check the model before perform</h3>
+
+<p>Add this method hook, which will be invoked before the <code>perform_on_model</code> is called.
+If the check fails, <code>perform_on_model</code> will not be called.
+When the method isn't defined, it returns <code>true</code> by default.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">should_perform_on_model?</span>
+    <span class="n">task_model</span><span class="o">.</span><span class="n">active?</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="model-didnt-pass-the-check" class="anchor" href="#model-didnt-pass-the-check"><span class="octicon octicon-link"></span></a>Model didn't pass the check</h3>
+
+<p>Add this method hook, which will be invoked in th event the model didn't pass the validation. </p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">did_not_perform_on_model</span>
+    <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User </span><span class="si">#{</span><span class="n">task_model</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> is invalid"</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="hook-life-cycle" class="anchor" href="#hook-life-cycle"><span class="octicon octicon-link"></span></a>Hook Life Cycle</h2>
+
+<p>The hooks order of execution is:</p>
+
+<pre><code>* not_found_model
+* should_perform_on_model?
+* perform_on_model || did_not_perform_on_model
+</code></pre>
+
+<h1>
+<a name="custom-task-options" class="anchor" href="#custom-task-options"><span class="octicon octicon-link"></span></a>Custom Task Options</h1>
+
+<p>To change the default task options, you can use the <code>sidekiq_task_options</code> to specify the following:</p>
+
+<h4>
+<a name="identifier_key" class="anchor" href="#identifier_key"><span class="octicon octicon-link"></span></a>identifier_key</h4>
+
+<p>In some cases the model identifier is not <code>:id</code>.
+To handle this, you can define the <code>:identifier_key</code> option:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_task_options</span> <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:token</span>
+</pre></div>
+
+<p>Which will load fetch the User by the <code>:token</code> attribute. </p>
+
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-51556764-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
