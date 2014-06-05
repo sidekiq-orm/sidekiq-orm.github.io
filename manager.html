@@ -126,8 +126,11 @@ In such cases, when you don't to be blocking, it's recommended to delay the quer
 
 <h3>
 <a name="batch_size" class="anchor" href="#batch_size"><span class="octicon octicon-link"></span></a>batch_size</h3>
-
-<p>Default batch size is 1000</p>
+<p>Specifies the size of each batch to push in bulk.
+    <br>
+This is also the number of models to fetch in each find_in_batches query.
+<br>
+    Default batch size is <code>1000</code></p>
 
 <div class="highlight highlight-ruby"><pre><span class="n">sidekiq_manager_options</span> <span class="ss">:batch_size</span> <span class="o">=&gt;</span> <span class="mi">500</span>
 </pre></div>
