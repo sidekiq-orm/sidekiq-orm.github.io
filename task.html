@@ -118,7 +118,7 @@ In case the task was called with additional arguments, will be passed to <code>p
 <h3>
 <a name="model-not-found" class="anchor" href="#model-not-found"><span class="octicon octicon-link"></span></a>Model not found</h3>
 
-<p>Add this method hook, which will be invoked in th event the model wasn't found. </p>
+<p>Add this method hook, which will be invoked in the event the model wasn't found. </p>
 
 <div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">not_found_model</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
     <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User not found for ID:</span><span class="si">#{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">"</span>
@@ -140,7 +140,7 @@ When the method isn't defined, it returns <code>true</code> by default.</p>
 <h3>
 <a name="model-didnt-pass-the-check" class="anchor" href="#model-didnt-pass-the-check"><span class="octicon octicon-link"></span></a>Model didn't pass the check</h3>
 
-<p>Add this method hook, which will be invoked in th event the model didn't pass the validation. </p>
+<p>Add this method hook, which will be invoked in the event the model didn't pass the validation. </p>
 
 <div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">did_not_perform_on_model</span>
     <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User </span><span class="si">#{</span><span class="n">task_model</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> is invalid"</span>

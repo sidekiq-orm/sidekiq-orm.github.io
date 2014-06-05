@@ -38,7 +38,7 @@
 <h1>
 <a name="sidekiqactiverecordmanagerworker" class="anchor" href="#sidekiqactiverecordmanagerworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::ManagerWorker</h1>
 
-<p>Another farily common <code>Sidekiq::Worker</code> pattern, is a parent worker which goes over some model collection and enqueues a child worker for each model in the collection.
+<p>A fairly  common <code>Sidekiq::Worker</code> pattern, is a parent worker which goes over some model collection and enqueues a child worker for each model in the collection.
 lets checkout an example:</p>
 
 <div class="highlight highlight-ruby"><pre><span class="c1"># Parent Worker</span>
