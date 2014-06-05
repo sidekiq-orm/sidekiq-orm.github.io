@@ -77,6 +77,11 @@ lets checkout an example:</p>
 <div class="highlight highlight-ruby"><pre><span class="no">UserSyncer</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>
 </pre></div>
 
+          
+          <br>
+          <hr>
+          <br>
+          
 <h2>
 <a name="delayed-execution" class="anchor" href="#delayed-execution"><span class="octicon octicon-link"></span></a>Delayed Execution</h2>
 
@@ -111,6 +116,10 @@ In such cases, when you don't to be blocking, it's recommended to delay the quer
 <div class="highlight highlight-ruby"><pre><span class="n">override_options</span> <span class="o">=</span> <span class="p">{</span> <span class="ss">:batch_size</span> <span class="o">=&gt;</span> <span class="mi">300</span> <span class="p">}</span>
 <span class="no">UserSyncerWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">override_options</span><span class="p">)</span>
 </pre></div>
+          
+          <br>
+          <hr>
+          <br>
 
 <h2>
 <a name="configuration" class="anchor" href="#configuration"><span class="octicon octicon-link"></span></a>Configuration</h2>

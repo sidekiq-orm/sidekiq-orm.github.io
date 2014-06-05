@@ -35,8 +35,10 @@
           <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
         </div>
 
-<h1>
-<a name="sidekiqactiverecordtaskworker" class="anchor" href="#sidekiqactiverecordtaskworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::TaskWorker</h1>
+
+          <h1>
+              <a name="sidekiqactiverecordtaskworker" class="anchor" href="#sidekiqactiverecordtaskworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::TaskWorker
+          </h1>
 
 <p>A fairly common <code>Sidekiq::Worker</code> pattern, is a worker which does the following:</p>
 
@@ -99,10 +101,14 @@ In case the task was called with additional arguments, will be passed to <code>p
 <span class="k">end</span>
 </pre></div>
 
-<h2>
-<a name="full-example" class="anchor" href="#full-example"><span class="octicon octicon-link"></span></a>Full Example</h2>
+<h1>
+<a name="full-example" class="anchor" href="#full-example"><span class="octicon octicon-link"></span></a>Full Example</h1>
 
-<p>Checkout the <a href="https://github.com/sidekiq-orm/sidekiq-activerecord/wiki/Task-Worker---Full-Example">full example</a></p>
+<p>Checkout the <a href="/task_example.html">full example</a>.</p>
+          
+          <br>
+          <hr>
+          <br>
 
 <h1>
 <a name="hooks" class="anchor" href="#hooks"><span class="octicon octicon-link"></span></a>Hooks</h1>
@@ -150,6 +156,10 @@ When the method isn't defined, it returns <code>true</code> by default.</p>
 * should_perform_on_model?
 * perform_on_model || did_not_perform_on_model
 </code></pre>
+          
+          <br>
+          <hr>
+          <br>
 
 <h1>
 <a name="custom-task-options" class="anchor" href="#custom-task-options"><span class="octicon octicon-link"></span></a>Custom Task Options</h1>

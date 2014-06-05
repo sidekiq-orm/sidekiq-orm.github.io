@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Sidekiq-ActiveRecord by sidekiq-orm</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/sidekiq-orm/sidekiq-activerecord">View On GitHub</a></li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Sidekiq-ActiveRecord</h1>
+          <p>Sidekiq-ORM Project</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/sidekiq-orm">sidekiq-orm</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
+          <h1>
+              <a name="sidekiqactiverecordtaskworker" class="anchor" href="#sidekiqactiverecordtaskworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::TaskWorker
+          </h1>
+         <p>Back to the <a href="/task.html">documention</a>.</p> 
+          
+          
+        <h3>
+<a name="full-example" class="anchor" href="#full-example"><span class="octicon octicon-link"></span></a>Full Example</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserMailerTaskWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">TaskWorker</span>
+
+  <span class="n">sidekiq_task_model</span> <span class="ss">:user</span> <span class="c1"># or User class</span>
+  <span class="n">sidekiq_task_options</span> <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:token</span>
+
+  <span class="k">def</span> <span class="nf">perform_on_model</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+    <span class="no">UserMailer</span><span class="o">.</span><span class="n">send_confirmation</span><span class="p">(</span><span class="n">task_model</span><span class="p">,</span> <span class="n">options</span><span class="o">[</span><span class="ss">:new_email</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">not_found_model</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+    <span class="no">Log</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User not found for token:</span><span class="si">#{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">should_perform_on_model?</span>
+    <span class="n">task_model</span><span class="o">.</span><span class="n">active?</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">did_not_perform_on_model</span>
+    <span class="no">Log</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User </span><span class="si">#{</span><span class="n">task_model</span><span class="o">.</span><span class="n">token</span><span class="si">}</span><span class="s2"> is invalid"</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<p>Which can be ran by doing:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">UserTaskWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="p">{</span><span class="ss">:new_email</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">})</span>
+</pre></div>
+
+          <br>
+          <hr>
+          <br>
+          
+<h3>
+<a name="full-example-with-aliasing" class="anchor" href="#full-example-with-aliasing"><span class="octicon octicon-link"></span></a>Full Example With Aliasing</h3>
+
+<p>The specified <code>sidekiq_task_model</code> will create method aliases for <code>task_model</code> and all the hook methods, as follows: </p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserMailerTaskWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">TaskWorker</span>
+
+  <span class="n">sidekiq_task_model</span> <span class="ss">:user</span> <span class="c1"># or User class</span>
+  <span class="n">sidekiq_task_options</span> <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:token</span>
+
+  <span class="k">def</span> <span class="nf">perform_on_user</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+    <span class="no">UserMailer</span><span class="o">.</span><span class="n">send_confirmation</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">options</span><span class="o">[</span><span class="ss">:new_email</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">not_found_user</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+    <span class="no">Log</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User not found for token:</span><span class="si">#{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">should_perform_on_user?</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">active?</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">did_not_perform_on_user</span>
+    <span class="no">Log</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User </span><span class="si">#{</span><span class="n">user</span><span class="o">.</span><span class="n">token</span><span class="si">}</span><span class="s2"> is invalid"</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-51556764-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
