@@ -35,74 +35,72 @@
           <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
         </div>
 
-        <p><a href="https://github.com/sidekiq-orm/sidekiq-activerecord">Sidekiq::Activerecord</a> encapsulates common patterns and various interactions between <a href="https://github.com/mperham/sidekiq">Sidekiq</a> and <a href="http://guides.rubyonrails.org/active_record_basics.html">ActiveRecord</a>.</p>
+        <h2>
+<a name="full-example" class="anchor" href="#full-example"><span class="octicon octicon-link"></span></a>Full Example</h2>
 
-<h2>
-<a name="common-patterns" class="anchor" href="#common-patterns"><span class="octicon octicon-link"></span></a>Common Patterns</h2>
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserMailerTaskWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">TaskWorker</span>
 
-<p>If you've been using Sidekiq for a while, you've probably noticed a recurring pattern in your workers:</p>
+  <span class="n">sidekiq_task_model</span> <span class="ss">:user</span> <span class="c1"># or User class</span>
+  <span class="n">sidekiq_task_options</span> <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:token</span>
 
-<h2>
-<a name="sidekiqactiverecordtaskworker" class="anchor" href="#sidekiqactiverecordtaskworker"><span class="octicon octicon-link"></span></a><a href="/task.html">Sidekiq::ActiveRecord::TaskWorker</a>
-</h2>
+  <span class="k">def</span> <span class="nf">perform_on_model</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+    <span class="no">UserMailer</span><span class="o">.</span><span class="n">deliver_registration_confirmation</span><span class="p">(</span><span class="n">task_model</span><span class="p">,</span> <span class="n">options</span><span class="o">[</span><span class="ss">:new_email</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
 
-<p>A very conventional pattern, is to have a worker that gets a model identifier, loads it and runs some custom logic on the model. </p>
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">not_found_model</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+    <span class="no">Log</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User not found for token:</span><span class="si">#{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span>
+  <span class="k">end</span>
 
-<p><a href="/task.html"><code>TaskWorker</code></a> provides a simple and clean interface, which reduces the boilerplate and exposes only the custom logic.   </p>
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">should_perform_on_model?</span>
+    <span class="n">task_model</span><span class="o">.</span><span class="n">active?</span>
+  <span class="k">end</span>
 
-<p>Here's a simple example:</p>
-
-<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserTaskWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">TaskWorker</span>
-
-  <span class="n">sidekiq_task_model</span> <span class="ss">:user</span> <span class="c1"># or User</span>
-
-  <span class="k">def</span> <span class="nf">perform_on_user</span>
-    <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">did_not_perform_on_model</span>
+    <span class="no">Log</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User </span><span class="si">#{</span><span class="n">task_model</span><span class="o">.</span><span class="n">token</span><span class="si">}</span><span class="s2"> is invalid"</span>
   <span class="k">end</span>
 
 <span class="k">end</span>
 </pre></div>
 
-<p>For a more see the <a href="/task.html">TaskWorker documention</a>.</p>
+<p>Which can be ran by doing:</p>
 
-<hr><h2>
-<a name="sidekiqactiverecordmanagerworker" class="anchor" href="#sidekiqactiverecordmanagerworker"><span class="octicon octicon-link"></span></a><a href="/manager.html">Sidekiq::ActiveRecord::ManagerWorker</a>
-</h2>
+<div class="highlight highlight-ruby"><pre><span class="no">UserTaskWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="p">{</span><span class="ss">:new_email</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">})</span>
+</pre></div>
 
-<p>Another farily common <code>Sidekiq::Worker</code> pattern, is a parent worker which goes over a model collection and enqueues a child worker for each model in the collection.</p>
+<h2>
+<a name="full-example-with-aliasing" class="anchor" href="#full-example-with-aliasing"><span class="octicon octicon-link"></span></a>Full Example With Aliasing</h2>
 
-<p>Here's a simple example:</p>
+<p>The specified <code>sidekiq_task_model</code> will create method aliases for <code>task_model</code> and all the hook methods, as follows: </p>
 
-<div class="highlight highlight-ruby"><pre><span class="c1"># Parent Worker</span>
-<span class="k">class</span> <span class="nc">UserSyncer</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">ManagerWorker</span>
-  <span class="n">sidekiq_delegate_task_to</span> <span class="ss">:user_task_worker</span> <span class="c1"># or UserTaskWorker</span>
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserMailerTaskWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">TaskWorker</span>
+
+  <span class="n">sidekiq_task_model</span> <span class="ss">:user</span> <span class="c1"># or User class</span>
+  <span class="n">sidekiq_task_options</span> <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:token</span>
+
+  <span class="k">def</span> <span class="nf">perform_on_user</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+    <span class="no">UserMailer</span><span class="o">.</span><span class="n">deliver_registration_confirmation</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">options</span><span class="o">[</span><span class="ss">:new_email</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">not_found_user</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+    <span class="no">Log</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User not found for token:</span><span class="si">#{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">should_perform_on_user?</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">active?</span>
+  <span class="k">end</span>
+
+  <span class="c1"># optional</span>
+  <span class="k">def</span> <span class="nf">did_not_perform_on_user</span>
+    <span class="no">Log</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User </span><span class="si">#{</span><span class="n">user</span><span class="o">.</span><span class="n">token</span><span class="si">}</span><span class="s2"> is invalid"</span>
+  <span class="k">end</span>
+
 <span class="k">end</span>
 </pre></div>
-
-<p>Then, just call the worker with the model collection:</p>
-
-<div class="highlight highlight-ruby"><pre><span class="no">UserSyncer</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>
-</pre></div>
-
-<p>For a more see the <a href="/manager.html">ManagerWorker documention</a>.</p>
-
-<h1>
-<a name="documention" class="anchor" href="#documention"><span class="octicon octicon-link"></span></a>Documention</h1>
-
-<p>Checkout the project's <a href="https://github.com/sidekiq-orm/sidekiq-activerecord/wiki">Wiki Page</a></p>
-
-<h1>
-<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h1>
-
-<p>Add this line to your application's Gemfile:</p>
-
-<pre><code>gem 'sidekiq-activerecord'
-</code></pre>
-
-<p>And then execute:</p>
-
-<pre><code>$ bundle
-</code></pre>
       </section>
 
     </div>
