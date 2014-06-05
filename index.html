@@ -1,226 +1,69 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Sidekiq-ActiveRecord by sidekiq-orm</title>
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="javascripts/respond.js"></script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!--[if lt IE 8]>
-    <link rel="stylesheet" href="stylesheets/ie.css">
-    <![endif]-->
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Sidekiq-ActiveRecord : Sidekiq-ORM Project" />
 
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Sidekiq-ActiveRecord</title>
   </head>
+
   <body>
-      <div id="header">
-        <nav>
-          <li class="fork"><a href="https://github.com/sidekiq-orm">View On GitHub</a></li>
-        </nav>
-      </div><!-- end header -->
 
-    <div class="wrapper">
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/sidekiq-orm">View on GitHub</a>
 
-      <section>
-        <div id="title">
-          <h1>Sidekiq-ActiveRecord</h1>
-          <p>Sidekiq-ORM Project</p>
-          <hr>
-          <span class="credits left">Project maintained by <a href="https://github.com/sidekiq-orm">sidekiq-orm</a></span>
-          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
-        </div>
+          <h1 id="project_title">Sidekiq-ActiveRecord</h1>
+          <h2 id="project_tagline">Sidekiq-ORM Project</h2>
 
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <p><a href="https://github.com/sidekiq-orm/sidekiq-activerecord">Sidekiq::Activerecord</a> encapsulates common patterns and various interactions between <a href="https://github.com/mperham/sidekiq">Sidekiq</a> and <a href="http://guides.rubyonrails.org/active_record_basics.html">ActiveRecord</a>.</p>
 
 <h2>
-<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+<a name="common-patterns" class="anchor" href="#common-patterns"><span class="octicon octicon-link"></span></a>Common Patterns</h2>
 
-<p>Add this line to your application's Gemfile:</p>
+<p>If you've been using Sidekiq for a while, you've probably noticed a recurring pattern in your workers:</p>
 
-<pre><code>gem 'sidekiq-activerecord'
-</code></pre>
+<h2>
+<a name="sidekiqactiverecordtaskworker" class="anchor" href="#sidekiqactiverecordtaskworker"><span class="octicon octicon-link"></span></a><a href="/task.html">Sidekiq::ActiveRecord::TaskWorker</a>
+</h2>
 
-<p>And then execute:</p>
+<p>A very conventional pattern, is to have a worker that gets a model identifier, loads it and runs some custom logic on the model. </p>
 
-<pre><code>$ bundle
-</code></pre>
+<p><a href="/task.html"><code>TaskWorker</code></a> provides a simple and clean interface, which reduces the boilerplate and exposes only the custom logic.   </p>
 
-<h1>
-<a name="common-patterns" class="anchor" href="#common-patterns"><span class="octicon octicon-link"></span></a>Common Patterns</h1>
+<p>Here's a simple example:</p>
 
-<p>If you've been using <a href="https://github.com/mperham/sidekiq">Sidekiq</a> for a while, you've probably noticed a recurring pattern in your workers:</p>
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserTaskWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">TaskWorker</span>
 
-<h1>
-<a name="sidekiqactiverecordtaskworker" class="anchor" href="#sidekiqactiverecordtaskworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::TaskWorker</h1>
+  <span class="n">sidekiq_task_model</span> <span class="ss">:user</span> <span class="c1"># or User</span>
 
-<p>A fairly common <code>Sidekiq::Worker</code> pattern, is a worker which does the following:</p>
-
-<pre><code>* Receives a model.id as it's argument.
-* Loads the specified model.
-* Verifies that the model exists.
-* Performs some additional validation.
-  (since the model may have changed since the worker was enqueued)
-* If all is well, runs some application logic on the mode.
-</code></pre>
-
-<p>lets checkout an example:</p>
-
-<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserTaskWorker</span>
-  <span class="kp">include</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">Worker</span>
-
-  <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
-    <span class="n">user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
-    <span class="k">return</span> <span class="k">unless</span> <span class="n">user</span><span class="o">.</span><span class="n">present?</span>
-    <span class="k">return</span> <span class="k">unless</span> <span class="n">user</span><span class="o">.</span><span class="n">active?</span>
-
+  <span class="k">def</span> <span class="nf">perform_on_user</span>
     <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
   <span class="k">end</span>
 
 <span class="k">end</span>
 </pre></div>
 
-<p><code>Sidekiq::ActiveRecord::TaskWorker</code> wraps this boilerplate and lets you access the model, using the <code>perform_on_model</code> method:</p>
+<p>For a more see the <a href="/task.html">TaskWorker documention</a>.</p>
 
-<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserTaskWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">TaskWorker</span>
+<hr><h2>
+<a name="sidekiqactiverecordmanagerworker" class="anchor" href="#sidekiqactiverecordmanagerworker"><span class="octicon octicon-link"></span></a><a href="/manager.html">Sidekiq::ActiveRecord::ManagerWorker</a>
+</h2>
 
-  <span class="n">sidekiq_task_model</span> <span class="ss">:user</span> <span class="c1"># or User</span>
+<p>Another farily common <code>Sidekiq::Worker</code> pattern, is a parent worker which goes over a model collection and enqueues a child worker for each model in the collection.</p>
 
-  <span class="k">def</span> <span class="nf">perform_on_model</span>
-    <span class="n">current_user</span> <span class="o">=</span> <span class="n">task_model</span>
-    <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span>
-  <span class="k">end</span>
-
-<span class="k">end</span>
-</pre></div>
-
-<p>The <code>sidekiq_task_model</code> is the task's model. it can be either a symbol (<code>:user</code>) or the model class (<code>User</code>).
-Note that <code>perform_on_model</code> will only be called if the model exist and valid. (more on that soon)
-In case the task was called with additional arguments, will be passed to <code>perform_on_model</code> e.g: </p>
-
-<div class="highlight highlight-ruby"><pre><span class="no">UserTaskWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="p">{</span><span class="ss">:new_email</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">})</span>
-</pre></div>
-
-<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">perform_on_model</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
-    <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">task_model</span><span class="p">,</span> <span class="n">options</span><span class="o">[</span><span class="ss">:new_email</span><span class="o">]</span><span class="p">)</span>
-<span class="k">end</span>
-</pre></div>
-
-<p>For better readability, you can use an alias of <code>task_model</code> which is the same as name class name:</p>
-
-<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_task_model</span> <span class="ss">:user</span>
-
-<span class="k">def</span> <span class="nf">perform_on_model</span><span class="p">(</span><span class="n">service_options</span><span class="p">)</span>
-    <span class="no">UserService</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">service_options</span><span class="p">)</span>
-<span class="k">end</span>
-</pre></div>
-
-<h2>
-<a name="full-example" class="anchor" href="#full-example"><span class="octicon octicon-link"></span></a>Full Example</h2>
-
-<p>Checkout the <a href="https://github.com/sidekiq-orm/sidekiq-activerecord/wiki/Task-Worker---Full-Example">full example</a></p>
-
-<h1>
-<a name="hooks" class="anchor" href="#hooks"><span class="octicon octicon-link"></span></a>Hooks</h1>
-
-<p>Additionally, you can define the following methods which serve as hooks for each use-case:</p>
-
-<h3>
-<a name="model-not-found" class="anchor" href="#model-not-found"><span class="octicon octicon-link"></span></a>Model not found</h3>
-
-<p>Add this method hook, which will be invoked in th event the model wasn't found. </p>
-
-<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">not_found_model</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
-    <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User not found for ID:</span><span class="si">#{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">"</span>
-<span class="k">end</span>
-</pre></div>
-
-<h3>
-<a name="check-the-model-before-perform" class="anchor" href="#check-the-model-before-perform"><span class="octicon octicon-link"></span></a>Check the model before perform</h3>
-
-<p>Add this method hook, which will be invoked before the <code>perform_on_model</code> is called.
-If the check fails, <code>perform_on_model</code> will not be called.
-When the method isn't defined, it returns <code>true</code> by default.</p>
-
-<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">should_perform_on_model?</span>
-    <span class="n">task_model</span><span class="o">.</span><span class="n">active?</span>
-<span class="k">end</span>
-</pre></div>
-
-<h3>
-<a name="model-didnt-pass-the-check" class="anchor" href="#model-didnt-pass-the-check"><span class="octicon octicon-link"></span></a>Model didn't pass the check</h3>
-
-<p>Add this method hook, which will be invoked in th event the model didn't pass the validation. </p>
-
-<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">did_not_perform_on_model</span>
-    <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">"User </span><span class="si">#{</span><span class="n">task_model</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> is invalid"</span>
-<span class="k">end</span>
-</pre></div>
-
-<h2>
-<a name="hook-life-cycle" class="anchor" href="#hook-life-cycle"><span class="octicon octicon-link"></span></a>Hook Life Cycle</h2>
-
-<p>The hooks order of execution is:</p>
-
-<pre><code>* not_found_model
-* should_perform_on_model?
-* perform_on_model || did_not_perform_on_model
-</code></pre>
-
-<h1>
-<a name="custom-task-options" class="anchor" href="#custom-task-options"><span class="octicon octicon-link"></span></a>Custom Task Options</h1>
-
-<p>To change the default task options, you can use the <code>sidekiq_task_options</code> to specify the following:</p>
-
-<h4>
-<a name="identifier_key" class="anchor" href="#identifier_key"><span class="octicon octicon-link"></span></a>identifier_key</h4>
-
-<p>In some cases the model identifier is not <code>:id</code>.
-To handle this, you can define the <code>:identifier_key</code> option:</p>
-
-<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_task_options</span> <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:token</span>
-</pre></div>
-
-<p>Which will load fetch the User by the <code>:token</code> attribute. </p>
-
-<p><br><br></p>
-
-<hr><p><br></p>
-
-<h1>
-<a name="sidekiqactiverecordmanagerworker" class="anchor" href="#sidekiqactiverecordmanagerworker"><span class="octicon octicon-link"></span></a>Sidekiq::ActiveRecord::ManagerWorker</h1>
-
-<p>Another farily common <code>Sidekiq::Worker</code> pattern, is a parent worker which goes over some model collection and enqueues a child worker for each model in the collection.
-lets checkout an example:</p>
-
-<div class="highlight highlight-ruby"><pre><span class="c1"># Parent Worker</span>
-<span class="k">class</span> <span class="nc">UserSyncer</span>
-  <span class="kp">include</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">Worker</span>
-
-  <span class="k">def</span> <span class="nf">perform</span>
-    <span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
-      <span class="no">ChildWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-    <span class="k">end</span>
-  <span class="k">end</span>
-
-<span class="k">end</span>
-</pre></div>
-
-<div class="highlight highlight-ruby"><pre><span class="c1"># Child Worker</span>
-<span class="k">class</span> <span class="nc">UserTaskWorker</span>
-  <span class="kp">include</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">Worker</span>
-
-  <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
-    <span class="c1"># task logic</span>
-  <span class="k">end</span>
-<span class="k">end</span>
-</pre></div>
-
-<p><code>Sidekiq::ActiveRecord::ManagerWorker</code> wraps this boilerplate with a clean DSL:</p>
+<p>Here's a simple example:</p>
 
 <div class="highlight highlight-ruby"><pre><span class="c1"># Parent Worker</span>
 <span class="k">class</span> <span class="nc">UserSyncer</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">ManagerWorker</span>
@@ -233,84 +76,35 @@ lets checkout an example:</p>
 <div class="highlight highlight-ruby"><pre><span class="no">UserSyncer</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>
 </pre></div>
 
-<h2>
-<a name="delayed-execution" class="anchor" href="#delayed-execution"><span class="octicon octicon-link"></span></a>Delayed Execution</h2>
+<p>For a more see the <a href="/manager.html">ManagerWorker documention</a>.</p>
 
-<p>Let's start with an example first:</p>
+<h1>
+<a name="documention" class="anchor" href="#documention"><span class="octicon octicon-link"></span></a>Documention</h1>
 
-<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+<p>Checkout the project's <a href="https://github.com/sidekiq-orm/sidekiq-activerecord/wiki">Wiki Page</a></p>
 
-  <span class="k">def</span> <span class="nf">update</span>
-    <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">update_params</span><span class="p">)</span>
-       <span class="no">FriendRequestWorker</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">friends</span><span class="p">)</span>
-       <span class="no">UserSyncerWorker</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>
-    <span class="k">end</span>
-    <span class="n">respond_with</span> <span class="n">current_user</span>
-  <span class="k">end</span>
+<h1>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h1>
 
-<span class="k">end</span>
-</pre></div>
+<p>Add this line to your application's Gemfile:</p>
 
-<p>In the above example, <code>FriendRequestWorker</code> will go over all the user's friends, which we can assume is a fairly medium size collection.</p>
+<pre><code>gem 'sidekiq-activerecord'
+</code></pre>
 
-<p>After that, <code>UserSyncerWorker</code> will go over all of the <code>User.active</code> collection, which can be a huge collection, in large scale systems.
-In such cases, when you don't to be blocking, it's recommended to delay the query execution as well. </p>
+<p>And then execute:</p>
 
-<p>The way this can be done, is to set the <code>default_models_query</code> in the ManagerWorker and calling <code>perform_async</code>, which will run the specified query asynchronously: </p>
-
-<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserSyncerWorker</span> <span class="o">&lt;</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">ActiveRecord</span><span class="o">::</span><span class="no">ManagerWorker</span>
-  <span class="n">sidekiq_delegate_task_to</span> <span class="no">UserTaskWorker</span>
-  <span class="n">default_models_query</span> <span class="o">-&gt;</span> <span class="p">{</span> <span class="no">User</span><span class="o">.</span><span class="n">active</span> <span class="p">}</span>
-<span class="k">end</span>
-</pre></div>
-
-<div class="highlight highlight-ruby"><pre><span class="n">override_options</span> <span class="o">=</span> <span class="p">{</span> <span class="ss">:batch_size</span> <span class="o">=&gt;</span> <span class="mi">300</span> <span class="p">}</span>
-<span class="no">UserSyncerWorker</span><span class="o">.</span><span class="n">perform_async</span><span class="p">(</span><span class="n">override_options</span><span class="p">)</span>
-</pre></div>
-
-<h2>
-<a name="configuration" class="anchor" href="#configuration"><span class="octicon octicon-link"></span></a>Configuration</h2>
-
-<h3>
-<a name="batch_size" class="anchor" href="#batch_size"><span class="octicon octicon-link"></span></a>batch_size</h3>
-
-<p>Default batch size is 1000</p>
-
-<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_manager_options</span> <span class="ss">:batch_size</span> <span class="o">=&gt;</span> <span class="mi">500</span>
-</pre></div>
-
-<h3>
-<a name="identifier_key-1" class="anchor" href="#identifier_key-1"><span class="octicon octicon-link"></span></a>identifier_key</h3>
-
-<p>Default identifier_key is <code>:id</code></p>
-
-<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_manager_options</span> <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:email</span>
-</pre></div>
-
-<h3>
-<a name="additional_keys" class="anchor" href="#additional_keys"><span class="octicon octicon-link"></span></a>additional_keys</h3>
-
-<p>Other arguments to enqueue aside from the identifier</p>
-
-<div class="highlight highlight-ruby"><pre><span class="n">sidekiq_manager_options</span> <span class="ss">:additional_keys</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:status</span><span class="p">,</span> <span class="ss">:username</span><span class="o">]</span>
-</pre></div>
-
-<h2>
-<a name="override-default-options" class="anchor" href="#override-default-options"><span class="octicon octicon-link"></span></a>Override default options</h2>
-
-<p>Just pass the options to the manager:</p>
-
-<div class="highlight highlight-ruby"><pre><span class="n">override_options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="ss">:batch_size</span> <span class="o">=&gt;</span> <span class="mi">500</span><span class="p">,</span>
-    <span class="ss">:identifier_key</span> <span class="o">=&gt;</span> <span class="ss">:user_token</span><span class="p">,</span>
-    <span class="ss">:additional_keys</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:status</span><span class="o">]</span>
-<span class="p">}</span>
-<span class="no">UserSyncer</span><span class="o">.</span><span class="n">perform_query_async</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">active</span><span class="p">,</span> <span class="n">override_options</span><span class="p">)</span>
-</pre></div>
+<pre><code>$ bundle
+</code></pre>
       </section>
-
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
               <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
@@ -321,6 +115,7 @@ In such cases, when you don't to be blocking, it's recommended to delay the quer
             pageTracker._trackPageview();
             } catch(err) {}
           </script>
+
 
   </body>
 </html>
